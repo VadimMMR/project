@@ -8,6 +8,6 @@ COPY --from=libs /usr/local/lib/python3.9/site-packages/device /usr/local/lib/py
 COPY --from=libs /usr/local/lib/python3.9/site-packages/os_system /usr/local/lib/python3.9/site-packages/os_system
 
 WORKDIR /app
-COPY project/main.py .
+COPY main.py .
 
 CMD ["python", "main.py"]
