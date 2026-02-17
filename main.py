@@ -1,7 +1,18 @@
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import json
+import threading
 from os_system.main import get_complete_os_info
 from device.main import get_device_info
 
+# Глобальные переменные для хранения данных
+_os_info = None
+_cpu_info = None
+_gpu_info = None
+_ram_info = None
+
 def get_info_divice():
+    global _os_info, _cpu_info, _gpu_info, _ram_info
+    
     os_info = get_complete_os_info()
     all_info = get_device_info()
 
@@ -9,12 +20,25 @@ def get_info_divice():
     gpu_info = all_info["gpu"]
     ram_info = all_info["ram"]
     
+    # Сохраняем в глобальные переменные
+    _os_info = os_info
+    _cpu_info = cpu_info
+    _gpu_info = gpu_info
+    _ram_info = ram_info
+    
     globals().update(os_info)      # type: ignore
     globals().update(cpu_info)     # type: ignore
     globals().update(gpu_info)     # type: ignore
     globals().update(ram_info)     # type: ignore
 
     print_info()
+    
+    return {
+        "os": os_info,
+        "cpu": cpu_info,
+        "gpu": gpu_info,
+        "ram": ram_info
+    }
 
 def print_info():
     # Словарь со всеми переменными
@@ -70,5 +94,51 @@ def print_info():
         else:
             print(f"{name}: {value}")
 
+class DeviceInfoHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        try:
+            # Получаем свежие данные
+            result = get_info_divice()
+            
+            # Отправляем ответ
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            response = json.dumps(result, indent=2, default=str)
+            self.wfile.write(response.encode())
+            
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            error_response = json.dumps({"error": str(e)}, indent=2)
+            self.wfile.write(error_response.encode())
+    
+    def log_message(self, format, *args):
+        # Подавляем логи запросов для чистоты вывода
+        pass
+
+def run_web_server():
+    """Запускает веб-сервер в отдельном потоке"""
+    server = HTTPServer(('0.0.0.0', 10000), DeviceInfoHandler)
+    print(f"\n🌐 Веб-сервер запущен на порту 10000")
+    print(f"📝 Открой в браузере: http://localhost:10000")
+    print(f"🔍 Или на Render: https://твой-сервис.render.com\n")
+    server.serve_forever()
+
 if __name__ == "__main__":
+    # Запускаем веб-сервер в отдельном потоке
+    web_thread = threading.Thread(target=run_web_server, daemon=True)
+    web_thread.start()
+    
+    # Твоя оригинальная логика
     get_info_divice()
+    
+    # Держим главный поток активным
+    try:
+        while True:
+            import time
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n👋 Программа завершена")
