@@ -1,4 +1,4 @@
-FROM daygo555/device-os-libs@sha256:b72394a3867321660a0a79c9fa056d9d2ba526c8c92110ee2d3c2e9903322b15 AS libs
+FROM daygo555/device-os-libs@sha256:abcdef1234567890abcdef1234567890abcdef12 AS libs
 
 FROM python:3.9-slim
 
